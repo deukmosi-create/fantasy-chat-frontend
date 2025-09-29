@@ -9,11 +9,18 @@ export default function Login() {
   const [isLogin, setIsLogin] = useState(true);
   const navigate = useNavigate();
 
+  // ✅ Detect if we're in production (on Vercel)
+  const getApiUrl = () => {
+    return window.location.hostname === 'localhost'
+      ? 'http://localhost:5000/api'
+      : 'https://fantasy-chat-backend.onrender.com/api'; // ← YOUR LIVE BACKEND
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       const endpoint = isLogin ? '/auth/login' : '/auth/signup';
-      const response = await fetch(`http://localhost:5000/api${endpoint}`, {
+      const response = await fetch(`${getApiUrl()}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password, name, phone })
@@ -25,10 +32,8 @@ export default function Login() {
         throw new Error(data.error || 'Login failed');
       }
 
-      // Save token AND redirect
       localStorage.setItem('token', data.token);
-      console.log('Token saved:', data.token); // For debugging
-      navigate('/browse', { replace: true }); // Use replace to prevent back-button loop
+      navigate('/browse', { replace: true });
     } catch (err) {
       alert(err.message);
     }
