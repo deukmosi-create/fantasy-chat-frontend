@@ -1,30 +1,32 @@
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+// src/App.js
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import Login from './pages/Login';
 import './index.css';
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(null); // null = loading
-  const location = useLocation();
+  const [isAuthenticated, setIsAuthenticated] = useState(null);
 
   useEffect(() => {
-    const checkAuth = async () => {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setIsAuthenticated(false);
-        return;
-      }
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setIsAuthenticated(false);
+      return;
+    }
 
+    // Simple auth check
+    const checkAuth = async () => {
       try {
-        const res = await fetch('http://localhost:5000/api/auth/profile', {
-          headers: { 'Authorization': `Bearer ${token}` }
+        const isProduction = window.location.hostname !== 'localhost';
+        const baseUrl = isProduction
+          ? 'https://fantasy-chat-backend.onrender.com/api'
+          : 'http://localhost:5000/api';
+
+        const res = await fetch(`${baseUrl}/auth/profile`, {
+          headers: { Authorization: `Bearer ${token}` },
         });
-        if (res.ok) {
-          setIsAuthenticated(true);
-        } else {
-          localStorage.removeItem('token');
-          setIsAuthenticated(false);
-        }
+        setIsAuthenticated(res.ok);
+        if (!res.ok) localStorage.removeItem('token');
       } catch (err) {
         localStorage.removeItem('token');
         setIsAuthenticated(false);
@@ -32,9 +34,8 @@ function App() {
     };
 
     checkAuth();
-  }, [location]); // Re-check when route changes
+  }, []);
 
-  // Show nothing while checking
   if (isAuthenticated === null) {
     return <div className="app-container" style={{ paddingTop: '50px' }}>Loading...</div>;
   }
@@ -42,8 +43,23 @@ function App() {
   return (
     <div className="app-container">
       <Routes>
-        <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/browse" />} />
-        <Route path="/browse" element={isAuthenticated ? <div className="card"><h2>Browse Fantasy Profiles</h2></div> : <Navigate to="/login" />} />
+        <Route
+          path="/login"
+          element={!isAuthenticated ? <Login /> : <Navigate to="/browse" />}
+        />
+        <Route
+          path="/browse"
+          element={
+            isAuthenticated ? (
+              <div className="card" style={{ margin: '20px' }}>
+                <h2>Browse Fantasy Profiles</h2>
+                <p>Profiles will appear here soon!</p>
+              </div>
+            ) : (
+              <Navigate to="/login" />
+            )
+          }
+        />
         <Route path="*" element={<Navigate to={isAuthenticated ? "/browse" : "/login"} />} />
       </Routes>
     </div>

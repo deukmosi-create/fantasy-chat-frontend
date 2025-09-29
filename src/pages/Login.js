@@ -1,5 +1,7 @@
+// src/pages/Login.js
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import api from '../utils/api';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -7,35 +9,30 @@ export default function Login() {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [isLogin, setIsLogin] = useState(true);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-
-  // ✅ Detect if we're in production (on Vercel)
-  const getApiUrl = () => {
-    return window.location.hostname === 'localhost'
-      ? 'http://localhost:5000/api'
-      : 'https://fantasy-chat-backend.onrender.com/api'; // ← YOUR LIVE BACKEND
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
+
     try {
       const endpoint = isLogin ? '/auth/login' : '/auth/signup';
-      const response = await fetch(`${getApiUrl()}${endpoint}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, name, phone })
+      const { data } = await api.post(endpoint, {
+        email,
+        password,
+        name: isLogin ? undefined : name,
+        phone: isLogin ? undefined : phone,
       });
-      
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.error || 'Login failed');
-      }
 
       localStorage.setItem('token', data.token);
       navigate('/browse', { replace: true });
     } catch (err) {
-      alert(err.message);
+      const msg = err.response?.data?.error || 'Login failed. Please try again.';
+      alert(msg);
+      console.error('Login error:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -45,7 +42,7 @@ export default function Login() {
         <h2 style={{ textAlign: 'center', fontSize: '24px', marginBottom: '24px' }}>
           {isLogin ? 'Welcome Back' : 'Create Account'}
         </h2>
-        
+
         <form onSubmit={handleSubmit}>
           {!isLogin && (
             <>
@@ -55,7 +52,7 @@ export default function Login() {
                 className="input"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                required={!isLogin}
+                required
               />
               <input
                 type="tel"
@@ -82,15 +79,27 @@ export default function Login() {
             onChange={(e) => setPassword(e.target.value)}
             required
           />
-          <button type="submit" className="button">
-            {isLogin ? 'Log In' : 'Sign Up'}
+          <button
+            type="submit"
+            className="button"
+            disabled={loading}
+            style={{ opacity: loading ? 0.7 : 1 }}
+          >
+            {loading ? 'Processing...' : isLogin ? 'Log In' : 'Sign Up'}
           </button>
         </form>
 
         <div style={{ textAlign: 'center', marginTop: '16px' }}>
           <button
+            type="button"
             onClick={() => setIsLogin(!isLogin)}
-            style={{ color: '#0d9488', background: 'none', border: 'none', cursor: 'pointer' }}
+            style={{
+              color: '#0d9488',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: '16px',
+            }}
           >
             {isLogin ? "Don't have an account? Sign Up" : "Already have an account? Log In"}
           </button>
