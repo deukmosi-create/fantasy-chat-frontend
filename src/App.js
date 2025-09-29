@@ -67,3 +67,9 @@ function App() {
 }
 
 export default App;
+
+<Route
+  path="/chat/:fantasyId"
+  element={isAuthenticated ? <Chat /> : <Navigate to="/login" />}
+/>
+import Chat from './pages/Chat';
